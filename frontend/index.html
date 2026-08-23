@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeWaste Compliance - Rastreabilidade RSS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col">
+
+  <!-- TOPBAR -->
+  <header class="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-6 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20 text-emerald-400">
+        <i data-lucide="shield-check" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">SafeWaste</span>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 ml-2">COMPLIANCE</span>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-4">
+      <div class="hidden sm:flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
+        <span class="text-slate-400">Perfil:</span>
+        <select id="roleSelector" onchange="UI.switchRole(this.value)" class="bg-transparent font-medium text-emerald-400 focus:outline-none">
+          <option value="master">Administrador Master</option>
+          <option value="clinica">Clínica Geradora</option>
+          <option value="coletora">Empresa Coletora</option>
+          <option value="destino">Destino Final</option>
+          <option value="demo">Modo Demonstração Commercial</option>
+        </select>
+      </div>
+
+      <div class="flex items-center space-x-3 pl-3 border-l border-slate-800">
+        <div class="text-right hidden md:block">
+          <p id="userNameDisplay" class="text-xs font-semibold text-slate-200">Administrador do Sistema</p>
+          <p id="userRoleDisplay" class="text-[10px] text-emerald-400 font-mono">ADMINISTRADOR MASTER</p>
+        </div>
+        <div class="w-9 h-9 rounded-full bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">AD</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900/50 border-r border-slate-800 p-4 hidden lg:flex flex-col justify-between">
+      <nav class="space-y-1">
+        <p class="text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-2 px-3">Módulos</p>
+        <button onclick="UI.navigate('dashboard')" class="nav-btn active w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800" data-target="dashboard">
+          <i data-lucide="layout-dashboard" class="w-4 h-4 text-emerald-400"></i><span>Dashboard</span>
+        </button>
+        <button onclick="UI.navigate('rastreabilidade')" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800" data-target="rastreabilidade">
+          <i data-lucide="git-commit" class="w-4 h-4 text-emerald-400"></i><span>Rastreabilidade</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 overflow-y-auto p-8 bg-slate-950">
+      <section id="view-dashboard" class="space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-5">
+          <h1 class="text-2xl font-bold text-white">Painel de Conformidade RSS</h1>
+          <button onclick="UI.toggleModal('modalEtapa1', true)" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded text-xs">
+            + Nova Geração de Resíduo
+          </button>
+        </div>
+
+        <!-- TABELA -->
+        <div class="glass-card rounded-xl p-5 border border-slate-800">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900 text-slate-400 border-b border-slate-800 uppercase font-mono">
+              <tr>
+                <th class="p-3">MTR</th>
+                <th class="p-3">Gerador</th>
+                <th class="p-3">Grupo</th>
+                <th class="p-3">Peso</th>
+                <th class="p-3">Etapa</th>
+                <th class="p-3">CDF</th>
+                <th class="p-3 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaResiduosBody" class="divide-y divide-slate-800/60 text-slate-300">
+              <!-- Preenchido via API -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL ETAPA 1 -->
+  <div id="modalEtapa1" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-card bg-slate-900 border border-slate-800 rounded-xl w-full max-w-lg p-6 space-y-4">
+      <h3 class="text-sm font-bold text-white">Registrar Geração de Resíduo</h3>
+      <form onsubmit="App.submitGeracaoResiduo(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Grupo do Resíduo</label>
+          <select id="formGrupo" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white">
+            <option value="A">Grupo A - Biológico / Infectante</option>
+            <option value="B">Grupo B - Químico</option>
+            <option value="E">Grupo E - Perfurocortante</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Descrição (opcional)</label>
+          <input type="text" id="formDescricao" placeholder="Ex: Seringas e agulhas usadas" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Peso (kg)</label>
+          <input type="number" step="0.1" id="formPeso" required class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">CPF do Responsável Técnico</label>
+          <input type="text" id="formCpf" required placeholder="000.000.000-00" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
+        </div>
+        <div class="flex justify-end space-x-2 pt-3">
+          <button type="button" onclick="UI.toggleModal('modalEtapa1', false)" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded">Cancelar</button>
+          <button type="submit" class="px-3 py-1.5 bg-emerald-600 text-slate-950 font-bold rounded">Salvar Resíduo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL PDF -->
+  <div id="modalPDF" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white text-slate-900 rounded-xl w-full max-w-xl p-6 space-y-4">
+      <h2 class="text-lg font-bold">Relatório Oficial de Conformidade RSS</h2>
+      <p class="text-xs text-slate-600">Manifesto MTR: <span id="pdfMTR" class="font-mono font-bold"></span></p>
+      <div class="flex justify-end space-x-2 border-t pt-3">
+        <button onclick="UI.toggleModal('modalPDF', false)" class="px-3 py-1 bg-slate-200 text-xs rounded">Fechar</button>
+        <button onclick="window.print()" class="px-3 py-1 bg-emerald-600 text-white text-xs rounded font-bold">Imprimir PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL RASTREIO -->
+  <div id="modalRastreio" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-card bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-6 space-y-5 max-h-[85vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-white">Rastreamento do Resíduo</h3>
+          <p class="text-xs text-slate-500 font-mono mt-0.5" id="rastreioMTR"></p>
+        </div>
+        <button onclick="UI.toggleModal('modalRastreio', false)" class="text-slate-500 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="rastreioTimeline" class="pt-2">
+        <!-- Preenchido via JS -->
+      </div>
+
+      <div class="border-t border-slate-800 pt-4 flex justify-end">
+        <button id="btnAvancarEtapa" onclick="App.avancarEtapaAtual()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded text-xs">
+          Avançar para Próxima Etapa
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

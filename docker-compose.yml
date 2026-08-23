@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  safewaste-app:
+    build: .
+    container_name: safewaste-fullstack
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - DB_DIALECT=sqlite
+      - JWT_SECRET=safewaste_sec_key_2026_immutable_hash
+    volumes:
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/safewaste.sqlite:/app/backend/safewaste.sqlite

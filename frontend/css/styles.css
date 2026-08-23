@@ -1,16 +1,219 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  border-radius: 0px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Custom Scrollbars */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #f8fafc;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: #cbd5e1;
 }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+/* Square White Containers (Clean White & Green Scheme) */
 .glass-card {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0px !important;
+}
+
+.glass-card-hover {
+  transition: border-color 0.15s ease-in-out;
+}
+.glass-card-hover:hover {
+  border-color: #10b981;
+}
+
+/* Toast Container & Notification System */
+#toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+  max-width: 24rem;
+  width: calc(100% - 3rem);
+}
+
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #ffffff;
+  border: 1px solid #10b981;
+  border-radius: 0px !important;
+  animation: toastSlideIn 0.2s ease-out forwards;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.toast-item.toast-leave {
+  animation: toastSlideOut 0.2s ease-in forwards;
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: #10b981;
+  width: 100%;
+  animation: toastProgress linear forwards;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* Modals Animation */
+.modal-backdrop {
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+.modal-backdrop.modal-active {
+  opacity: 1;
+}
+
+.modal-content {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.15s ease-out;
+  border-radius: 0px !important;
+}
+.modal-active .modal-content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Drag and Drop Zone */
+.dropzone {
+  border: 1px dashed #cbd5e1;
+  border-radius: 0px !important;
+  background: #f8fafc;
+  transition: border-color 0.15s ease;
+}
+.dropzone.dragover, .dropzone:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+/* Badge styles - Clean Solid */
+.badge-valido {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #10b981;
+  border-radius: 0px !important;
+}
+
+.badge-vencendo {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+  border-radius: 0px !important;
+}
+
+.badge-vencido {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+  border-radius: 0px !important;
+}
+
+/* Print styles for Report PDF Export */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  header, aside, #toast-container, .no-print, button, select, footer {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .glass-card {
+    background: #ffffff !important;
+    border: 1px solid #000000 !important;
+    box-shadow: none !important;
+    color: #000000 !important;
+    border-radius: 0px !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .text-white, .text-slate-900, .text-slate-800 {
+    color: #000000 !important;
+  }
+  .text-slate-400, .text-slate-300, .text-slate-500 {
+    color: #333333 !important;
+  }
+  .bg-slate-900, .bg-slate-950, .bg-slate-50 {
+    background: #ffffff !important;
+  }
+  table th {
+    background: #f1f5f9 !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
+  }
+  table td {
+    color: #000000 !important;
+    border: 1px solid #e2e8f0 !important;
+  }
 }

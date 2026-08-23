@@ -1,150 +1,994 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SafeWaste Compliance - Rastreabilidade RSS</title>
+  <title>SafeWaste - Gestão, Rastreabilidade & Conformidade de Resíduos Clínicos (RSS)</title>
+  <meta name="description"
+    content="Plataforma de gestão, rastreabilidade ponta a ponta e compliance regulatório para descarte de resíduos de serviços de saúde com validação Gov.br e MTR Nacional." />
+
+  <!-- Tailwind CSS, Lucide Icons & Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Design Tokens & Styles -->
   <link rel="stylesheet" href="css/styles.css" />
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col">
 
-  <!-- TOPBAR -->
-  <header class="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-6 flex items-center justify-between">
+<body class="bg-white text-slate-900 font-sans min-h-screen flex flex-col antialiased">
+
+  <!-- ================================================================= -->
+  <!-- TOPBAR / CABEÇALHO COM GOV.BR SSO E SELETOR DE PERFIL             -->
+  <!-- ================================================================= -->
+  <header
+    class="h-16 border-b border-slate-200 bg-white sticky top-0 z-40 px-4 md:px-6 flex items-center justify-between no-print">
     <div class="flex items-center space-x-3">
-      <div class="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20 text-emerald-400">
-        <i data-lucide="shield-check" class="w-6 h-6"></i>
-      </div>
       <div>
-        <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">SafeWaste</span>
-        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 ml-2">COMPLIANCE</span>
+        <div class="flex items-center space-x-3">
+          <span class="text-xl font-black tracking-tight text-slate-900" id="headerSystemName">SafeWaste</span>
+          <span id="userRoleBadge"
+            class="text-[10px] font-bold px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-600 font-mono uppercase">GERADOR
+            RSS</span>
+        </div>
+        <p class="text-[11px] text-slate-600 font-medium hidden sm:block" id="headerSystemSubtitle">Sistema de
+          conformidade regulatória, rastreabilidade MTR Nacional e validação Gov.br.</p>
       </div>
     </div>
 
-    <div class="flex items-center space-x-4">
-      <div class="hidden sm:flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
-        <span class="text-slate-400">Perfil:</span>
-        <select id="roleSelector" onchange="UI.switchRole(this.value)" class="bg-transparent font-medium text-emerald-400 focus:outline-none">
-          <option value="master">Administrador Master</option>
-          <option value="clinica">Clínica Geradora</option>
-          <option value="coletora">Empresa Coletora</option>
-          <option value="destino">Destino Final</option>
-          <option value="demo">Modo Demonstração Commercial</option>
+    <!-- SELETOR DE PERFIL & GOV.BR SSO STATUS -->
+    <div class="flex items-center space-x-2 md:space-x-3">
+
+      <!-- BOTÃO E BADGE DE AUTENTICAÇÃO GOV.BR -->
+      <button id="btnGovBrHeader" onclick="App.abrirModalGovBr()"
+        class="flex items-center space-x-2 px-3 py-1.5 bg-[#1351b4] hover:bg-[#0c326f] text-white text-xs font-bold transition border border-[#1351b4] shadow-sm">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" />
+        </svg>
+        <span id="btnGovBrText">Entrar com gov.br</span>
+        <span id="govBrNivelBadge"
+          class="hidden text-[9px] px-1.5 py-0.2 bg-amber-400 text-slate-950 font-black uppercase tracking-wider">OURO</span>
+      </button>
+
+      <!-- Seletor de Perfil Ativo -->
+      <div class="flex items-center space-x-2 bg-slate-50 px-2.5 py-1.5 border border-slate-300 text-xs">
+        <span class="text-slate-500 font-medium hidden lg:inline">Perfil:</span>
+        <select id="roleSelector" onchange="UI.switchRole(this.value)"
+          class="bg-transparent font-bold text-emerald-700 focus:outline-none cursor-pointer text-xs">
+          <option value="clinica" class="bg-white text-emerald-700">Clínica Geradora</option>
+          <option value="coletora" class="bg-white text-emerald-700">Empresa Coletora</option>
         </select>
       </div>
 
-      <div class="flex items-center space-x-3 pl-3 border-l border-slate-800">
+      <!-- Informação da Empresa Ativa -->
+      <div class="flex items-center space-x-2.5 pl-2 border-l border-slate-200">
         <div class="text-right hidden md:block">
-          <p id="userNameDisplay" class="text-xs font-semibold text-slate-200">Administrador do Sistema</p>
-          <p id="userRoleDisplay" class="text-[10px] text-emerald-400 font-mono">ADMINISTRADOR MASTER</p>
+          <p id="userNameDisplay" class="text-xs font-bold text-slate-900 leading-tight">Carregando...</p>
+          <p id="userRoleDisplay" class="text-[9px] text-emerald-600 font-mono tracking-wider uppercase font-semibold">
+            IDENTIFICANDO...</p>
         </div>
-        <div class="w-9 h-9 rounded-full bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">AD</div>
+        <div id="userAvatarDisplay"
+          class="w-8 h-8 bg-emerald-50 border border-emerald-600 flex items-center justify-center text-emerald-700 font-bold text-xs">
+          SW
+        </div>
       </div>
     </div>
   </header>
 
   <div class="flex flex-1 overflow-hidden">
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-slate-900/50 border-r border-slate-800 p-4 hidden lg:flex flex-col justify-between">
+    <!-- ================================================================= -->
+    <!-- SIDEBAR DE NAVEGAÇÃO                                              -->
+    <!-- ================================================================= -->
+    <aside
+      class="w-64 bg-slate-50 border-r border-slate-200 p-4 hidden lg:flex flex-col justify-between shrink-0 no-print">
       <nav class="space-y-1">
-        <p class="text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-2 px-3">Módulos</p>
-        <button onclick="UI.navigate('dashboard')" class="nav-btn active w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800" data-target="dashboard">
-          <i data-lucide="layout-dashboard" class="w-4 h-4 text-emerald-400"></i><span>Dashboard</span>
+        <p class="text-[10px] font-bold text-slate-500 tracking-wider uppercase mb-3 px-3">Módulos do Sistema</p>
+
+        <button onclick="UI.navigate('dashboard')"
+          class="nav-btn active w-full flex items-center space-x-3 px-3 py-2.5 text-xs font-bold text-slate-900 hover:bg-slate-200 transition"
+          data-target="dashboard">
+          <i data-lucide="layout-dashboard" class="w-4 h-4 text-emerald-600"></i>
+          <span>Dashboard Geral</span>
         </button>
-        <button onclick="UI.navigate('rastreabilidade')" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800" data-target="rastreabilidade">
-          <i data-lucide="git-commit" class="w-4 h-4 text-emerald-400"></i><span>Rastreabilidade</span>
+
+        <button onclick="UI.navigate('documentos')"
+          class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 transition"
+          data-target="documentos">
+          <i data-lucide="files" class="w-4 h-4 text-emerald-600"></i>
+          <span>Gestão de Documentos</span>
+        </button>
+
+        <button onclick="UI.navigate('coletas')"
+          class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 transition"
+          data-target="coletas">
+          <i data-lucide="truck" class="w-4 h-4 text-emerald-600"></i>
+          <span>Coletas Realizadas</span>
+        </button>
+
+        <button onclick="UI.navigate('relatorios')"
+          class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 transition"
+          data-target="relatorios">
+          <i data-lucide="file-bar-chart-2" class="w-4 h-4 text-emerald-600"></i>
+          <span>Relatórios & Exportação</span>
+        </button>
+
+        <button onclick="UI.navigate('auditoria')"
+          class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 transition"
+          data-target="auditoria">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+          <span>Log de Ações & Auditoria</span>
         </button>
       </nav>
+
+      <!-- Rodapé de Versão e Normas Regulatórias -->
+      <div class="p-3 border-t border-slate-200 text-[11px] text-slate-500 space-y-1">
+        <div class="flex items-center space-x-1.5 text-emerald-700 font-bold text-xs">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+          <span>MTR Nacional / SINIR</span>
+        </div>
+        <p class="font-bold text-slate-700" id="sidebarBrandName">SafeWaste Compliance</p>
+        <p class="text-[10px]" id="sidebarNormas">ANVISA RDC 222/2018 &bull; Portaria MMA 280</p>
+      </div>
     </aside>
 
-    <!-- MAIN -->
-    <main class="flex-1 overflow-y-auto p-8 bg-slate-950">
-      <section id="view-dashboard" class="space-y-6">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-5">
-          <h1 class="text-2xl font-bold text-white">Painel de Conformidade RSS</h1>
-          <button onclick="UI.toggleModal('modalEtapa1', true)" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded text-xs">
-            + Nova Geração de Resíduo
+    <!-- ================================================================= -->
+    <!-- MAIN CONTENT AREA                                                 -->
+    <!-- ================================================================= -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-white custom-scrollbar">
+
+      <!-- =============================================================== -->
+      <!-- VIEW: DASHBOARD DA CLÍNICA GERADORA                             -->
+      <!-- =============================================================== -->
+      <section id="view-dashboard-clinica" class="space-y-6">
+
+        <!-- Header da Seção com Filtros de Mês/Ano Dinâmicos -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+          <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Painel de Conformidade & Descarte RSS</h1>
+            <p class="text-xs text-slate-600 mt-0.5">Visão consolidada de descarte, rastreabilidade MTR e termos de
+              destinação final.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Filtros de Mês e Ano -->
+            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 p-1.5 text-xs">
+              <span class="text-slate-600 pl-2 font-bold flex items-center space-x-1">
+                <i data-lucide="filter" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span>Filtro:</span>
+              </span>
+              <select id="filtroMesSelect" onchange="App.onFiltroChange()"
+                class="bg-white text-slate-900 px-2.5 py-1 font-bold border border-slate-300 focus:outline-none focus:border-emerald-600">
+                <!-- Populado dinamicamente via JS -->
+              </select>
+
+              <select id="filtroAnoSelect" onchange="App.onFiltroChange()"
+                class="bg-white text-slate-900 px-2.5 py-1 font-bold border border-slate-300 focus:outline-none focus:border-emerald-600">
+                <!-- Populado dinamicamente via JS -->
+              </select>
+            </div>
+
+            <!-- Botão Nova Geração de Resíduo -->
+            <button id="btnNovaGeracaoResiduo" onclick="App.abrirModalNovaGeracao()"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-4 py-2.5 text-xs transition border border-emerald-600 uppercase tracking-wider flex items-center space-x-1.5 shadow-sm">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Nova Geração de Resíduo</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Banner Explicativo de Compliance: Vedação de CDF por Coletoras e Validação pela Destinação Final -->
+        <div class="p-4 bg-slate-50 border border-slate-300 flex items-start space-x-3 text-xs leading-relaxed">
+          <div class="p-1.5 bg-[#1351b4] text-white shrink-0 mt-0.5">
+            <i data-lucide="landmark" class="w-4 h-4"></i>
+          </div>
+          <div class="space-y-1">
+            <p class="font-bold text-slate-900">Regulamentação Oficial SINIR / MTR Nacional (Portaria MMA nº 280/2020):
+            </p>
+            <p class="text-slate-600">
+              A emissão de <strong>Certificados de Destinação Final (CDF)</strong> é restrita exclusivamente às plantas
+              de tratamento/destinação final licenciadas. As empresas transportadoras e gerenciadoras de resíduos são
+              <strong>legalmente vedadas de emitir CDF em nome próprio</strong>. A comprovação de destinação ocorre
+              mediante o <strong>Termo Oficial emitido pelo Destinador Final</strong> com número de LAO ambiental.
+            </p>
+          </div>
+        </div>
+
+        <!-- Banner de Alertas e Vencimentos Regulatórios -->
+        <div id="vencimentosAlertContainer" class="hidden space-y-2"></div>
+
+        <!-- CARDS DE KPIS DA CLÍNICA -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- KPI 1: Total Descartado -->
+          <div class="glass-card glass-card-hover p-5 border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Descartado</span>
+              <div class="p-2 bg-emerald-50 text-emerald-700 border border-emerald-300">
+                <i data-lucide="scale" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-black text-slate-900 font-mono" id="kpiTotalDescartadoMes">0.0 kg</div>
+            <p class="text-[11px] text-slate-500 flex items-center space-x-1">
+              <i data-lucide="calendar" class="w-3 h-3 text-emerald-600"></i>
+              <span id="filtroPeriodoDisplay">Carregando período...</span>
+            </p>
+          </div>
+
+          <!-- KPI 2: Coletas Feitas -->
+          <div class="glass-card glass-card-hover p-5 border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Coletas Realizadas</span>
+              <div class="p-2 bg-emerald-50 text-emerald-700 border border-emerald-300">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-black text-slate-900 font-mono" id="kpiColetasFeitas">0</div>
+            <p class="text-[11px] text-slate-500 flex items-center space-x-1">
+              <i data-lucide="file-check" class="w-3 h-3 text-emerald-600"></i>
+              <span>Comprovantes emitidos</span>
+            </p>
+          </div>
+
+          <!-- KPI 3: Pendências / Aguardando Coleta -->
+          <div class="glass-card glass-card-hover p-5 border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Aguardando Coleta</span>
+              <div class="p-2 bg-amber-50 text-amber-700 border border-amber-300">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-black text-amber-600 font-mono" id="kpiColetasPendentes">0</div>
+            <p class="text-[11px] text-slate-500">Manifestos MTR em aberto</p>
+          </div>
+
+          <!-- KPI 4: Situação Documental Obrigatória -->
+          <div id="cardStatusConformidade" class="glass-card glass-card-hover p-5 border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Situação Documental</span>
+              <div class="p-2 bg-emerald-50 text-emerald-700 border border-emerald-300">
+                <i data-lucide="shield" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div>
+              <div id="statusConformidadeBadge" class="inline-block"></div>
+            </div>
+            <p id="statusConformidadeDesc" class="text-[11px] text-slate-600 leading-tight"></p>
+          </div>
+        </div>
+
+        <!-- GRÁFICOS VISUAIS DE DESCARTE (CHART.JS) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="glass-card p-5 border border-slate-200 lg:col-span-2 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Descarte de Resíduos por Mês (kg)
+                </h3>
+                <p class="text-xs text-slate-500">Volume total pesado e manifestos gerados ao longo do ano</p>
+              </div>
+              <span
+                class="px-2.5 py-1 bg-slate-100 text-[11px] font-mono text-emerald-700 font-bold border border-slate-200">Ano
+                Vigente</span>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="chartDescarteMensal"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card p-5 border border-slate-200 space-y-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Classificação por Grupo RSS</h3>
+              <p class="text-xs text-slate-500">Divisão e proporção normativa por periculosidade</p>
+            </div>
+            <div class="h-64 relative flex items-center justify-center">
+              <canvas id="chartGruposResiduos"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABELA DE RESÍDUOS E MANIFESTOS MTR (CLÍNICA) -->
+        <div class="glass-card border border-slate-200 overflow-hidden shadow-sm">
+          <div class="p-5 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3 bg-slate-50">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Manifestos MTR Nacional & Validação
+                da Destinação Final</h3>
+              <p class="text-xs text-slate-500">Acompanhamento com assinatura Gov.br e Termo Oficial da Usina Licenciada
+              </p>
+            </div>
+            <button onclick="App.carregarResiduos()"
+              class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold border border-slate-300 flex items-center space-x-1">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-600"></i>
+              <span>Atualizar</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead
+                class="bg-slate-100 text-slate-700 border-b border-slate-200 uppercase font-mono tracking-wider text-[11px]">
+                <tr>
+                  <th class="p-3.5 border-r border-slate-200">MTR Código</th>
+                  <th class="p-3.5 border-r border-slate-200">Data / Hora Geração</th>
+                  <th class="p-3.5 border-r border-slate-200">Grupo</th>
+                  <th class="p-3.5 border-r border-slate-200">Peso Gerado</th>
+                  <th class="p-3.5 border-r border-slate-200">Status / Etapa</th>
+                  <th class="p-3.5 border-r border-slate-200">Comprovante Coleta</th>
+                  <th class="p-3.5 border-r border-slate-200">Validação Destinação</th>
+                  <th class="p-3.5 text-right">Ação</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaResiduosClinicaBody" class="divide-y divide-slate-200 text-slate-800">
+                <!-- Preenchido via JS / API -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW: DASHBOARD DA EMPRESA COLETORA                             -->
+      <!-- =============================================================== -->
+      <section id="view-dashboard-coletora" class="space-y-6 hidden">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-5">
+          <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Painel Operacional da Coletora</h1>
+            <p class="text-xs text-emerald-700 font-mono mt-0.5 font-bold" id="coletoraHeaderSubtitle">Gestão Logística
+              de Transportes e Atendimento RSS</p>
+          </div>
+          <button onclick="App.carregarResiduos()"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-4 py-2 text-xs transition border border-emerald-600 uppercase tracking-wider flex items-center space-x-1.5 shadow-sm">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            <span>Atualizar Solicitações</span>
           </button>
         </div>
 
-        <!-- TABELA -->
-        <div class="glass-card rounded-xl p-5 border border-slate-800">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-slate-900 text-slate-400 border-b border-slate-800 uppercase font-mono">
-              <tr>
-                <th class="p-3">MTR</th>
-                <th class="p-3">Gerador</th>
-                <th class="p-3">Grupo</th>
-                <th class="p-3">Peso</th>
-                <th class="p-3">Etapa</th>
-                <th class="p-3">CDF</th>
-                <th class="p-3 text-right">Ação</th>
-              </tr>
-            </thead>
-            <tbody id="tabelaResiduosBody" class="divide-y divide-slate-800/60 text-slate-300">
-              <!-- Preenchido via API -->
-            </tbody>
-          </table>
+        <!-- KPIS DA COLETORA -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="glass-card p-5 border border-slate-200 space-y-2">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total de Manifestos</span>
+            <div class="text-2xl font-black text-slate-900 font-mono" id="kpiColetoraTotal">0</div>
+            <p class="text-[11px] text-slate-500">Atribuídos à frota</p>
+          </div>
+
+          <div class="glass-card p-5 border border-amber-300 bg-amber-50 space-y-2">
+            <span class="text-xs font-bold text-amber-800 uppercase tracking-wider">Pendentes de Retirada</span>
+            <div class="text-2xl font-black text-amber-700 font-mono" id="kpiColetoraPendentes">0</div>
+            <p class="text-[11px] text-slate-600">Aguardando veículo</p>
+          </div>
+
+          <div class="glass-card p-5 border border-emerald-300 bg-emerald-50 space-y-2">
+            <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Coletas Concluídas</span>
+            <div class="text-2xl font-black text-emerald-700 font-mono" id="kpiColetoraRealizadas">0</div>
+            <p class="text-[11px] text-slate-600">Com comprovante anexado</p>
+          </div>
+
+          <div class="glass-card p-5 border border-slate-200 space-y-2">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Peso Total Recolhido</span>
+            <div class="text-2xl font-black text-slate-900 font-mono" id="kpiColetoraPesoTotal">0.0 kg</div>
+            <p class="text-[11px] text-slate-500">Volume transportado</p>
+          </div>
+        </div>
+
+        <!-- TABELA DE GESTÃO DA COLETORA -->
+        <div class="glass-card border border-slate-200 overflow-hidden shadow-sm">
+          <div class="p-5 border-b border-slate-200 bg-slate-50">
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Ordens de Coleta & Atendimento às
+              Clínicas</h3>
+            <p class="text-xs text-slate-500">Registre a pesagem real, informe dados operacionais e anexe o comprovante
+              formal assinado</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead
+                class="bg-slate-100 text-slate-700 border-b border-slate-200 uppercase font-mono tracking-wider text-[11px]">
+                <tr>
+                  <th class="p-3.5 border-r border-slate-200">MTR</th>
+                  <th class="p-3.5 border-r border-slate-200">Clínica Geradora</th>
+                  <th class="p-3.5 border-r border-slate-200">Data Solicitação</th>
+                  <th class="p-3.5 border-r border-slate-200">Resíduo / Peso Declarado</th>
+                  <th class="p-3.5 border-r border-slate-200">Etapa Atual</th>
+                  <th class="p-3.5 border-r border-slate-200">Comprovante Coleta</th>
+                  <th class="p-3.5 text-right">Ação Operacional</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaResiduosColetoraBody" class="divide-y divide-slate-200 text-slate-800">
+                <!-- Preenchido via JS / API -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW: GESTÃO DE DOCUMENTOS DE CONFORMIDADE                      -->
+      <!-- =============================================================== -->
+      <section id="view-documentos" class="space-y-6 hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+          <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Gestão Documental de Compliance RSS</h1>
+            <p class="text-xs text-slate-600 mt-0.5">Arquivos regulatórios obrigatórios, licenças ambientais, alvarás e
+              controle automático de vencimentos.</p>
+          </div>
+          <button onclick="UI.toggleModal('modalUploadDocumento', true)"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-4 py-2.5 text-xs transition border border-emerald-600 uppercase tracking-wider flex items-center space-x-1.5 shadow-sm">
+            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+            <span>+ Anexar Arquivo PDF</span>
+          </button>
+        </div>
+
+        <!-- Box Dinâmico de Exigências Legais Obrigatórias -->
+        <div class="glass-card p-5 border border-emerald-300 bg-emerald-50 space-y-3">
+          <div class="flex items-center space-x-2 text-emerald-800 font-bold text-xs uppercase tracking-wider">
+            <i data-lucide="info" class="w-4 h-4"></i>
+            <span>Documentos Obrigatórios por Lei para Liberação de Coletas RSS:</span>
+          </div>
+          <div id="legalRequirementsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <!-- Populado dinamicamente via metadados da API -->
+          </div>
+        </div>
+
+        <!-- TABELA DE DOCUMENTOS CADASTRADOS -->
+        <div class="glass-card border border-slate-200 overflow-hidden shadow-sm">
+          <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Histórico de Documentos Cadastrados
+            </h3>
+            <span class="text-xs text-emerald-700 font-mono font-bold">FORMATO EXCLUSIVO: .PDF</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead
+                class="bg-slate-100 text-slate-700 border-b border-slate-200 uppercase font-mono tracking-wider text-[11px]">
+                <tr>
+                  <th class="p-3.5 border-r border-slate-200">Nome do Documento</th>
+                  <th class="p-3.5 border-r border-slate-200">Categoria / Tipo</th>
+                  <th class="p-3.5 border-r border-slate-200">Obrigatoriedade</th>
+                  <th class="p-3.5 border-r border-slate-200">Emissão</th>
+                  <th class="p-3.5 border-r border-slate-200">Validade</th>
+                  <th class="p-3.5 border-r border-slate-200">Status Vigência</th>
+                  <th class="p-3.5 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaDocumentosBody" class="divide-y divide-slate-200 text-slate-800">
+                <!-- Preenchido via JS / API -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW: COLETAS REALIZADAS (HISTÓRICO OPERACIONAL)                -->
+      <!-- =============================================================== -->
+      <section id="view-coletas" class="space-y-6 hidden">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-5">
+          <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Histórico de Coletas & Destinações Realizadas
+            </h1>
+            <p class="text-xs text-slate-600 mt-0.5">Registros com carimbo de data/hora, identificação do transportador
+              e termos da destinação final.</p>
+          </div>
+        </div>
+
+        <div class="glass-card border border-slate-200 overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead
+                class="bg-slate-100 text-slate-700 border-b border-slate-200 uppercase font-mono tracking-wider text-[11px]">
+                <tr>
+                  <th class="p-3.5 border-r border-slate-200">MTR</th>
+                  <th class="p-3.5 border-r border-slate-200">Data & Hora da Coleta</th>
+                  <th class="p-3.5 border-r border-slate-200">Grupo Resíduo</th>
+                  <th class="p-3.5 border-r border-slate-200">Peso Aferido</th>
+                  <th class="p-3.5 border-r border-slate-200">Motorista / Placa</th>
+                  <th class="p-3.5 border-r border-slate-200">Comprovante Coleta</th>
+                  <th class="p-3.5 text-right">Termo Destinação Final</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaColetasRealizadasBody" class="divide-y divide-slate-200 text-slate-800">
+                <!-- Preenchido via JS / API -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW: RELATÓRIOS & EXPORTAÇÃO (CONSOLIDADO DE CONFORMIDADE)     -->
+      <!-- =============================================================== -->
+      <section id="view-relatorios" class="space-y-6 hidden">
+        <div
+          class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5 no-print">
+          <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Relatórios Mensais de Conformidade</h1>
+            <p class="text-xs text-slate-600 mt-0.5">Consolidação de documentos cadastrados, pendências e coletas
+              realizadas.</p>
+          </div>
+
+          <div class="flex items-center space-x-3">
+            <button onclick="App.exportarRelatorioCSV()"
+              class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition border border-slate-300 flex items-center space-x-1.5 uppercase tracking-wider">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+              <span>Exportar Planilha (CSV)</span>
+            </button>
+
+            <button onclick="App.exportarRelatorioPDF()"
+              class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition border border-emerald-600 uppercase tracking-wider flex items-center space-x-1.5 shadow-sm">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              <span>Imprimir / Salvar PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- RELATÓRIO FORMATADO PARA VISUALIZAÇÃO E IMPRESSÃO -->
+        <div class="glass-card p-6 md:p-8 border border-slate-300 space-y-6">
+
+          <!-- Cabeçalho Oficial Dinâmico do Relatório -->
+          <div class="flex items-start justify-between border-b border-slate-200 pb-6">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="text-xl font-black text-slate-900 tracking-tight">SafeWaste Compliance</span>
+                <span
+                  class="text-xs px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-600 font-mono font-bold">RELATÓRIO
+                  OFICIAL</span>
+              </div>
+              <p class="text-xs text-slate-700 font-bold" id="relUnidadeGeradoraInfo">Unidade Geradora: Carregando
+                dados...</p>
+              <p class="text-xs text-slate-600" id="relResponsavelTecnicoInfo">Responsável Técnico: Carregando dados...
+              </p>
+            </div>
+            <div class="text-right font-mono text-xs text-slate-600">
+              <p>Período: <strong class="text-emerald-700" id="relPeriodoTexto">Ano 2026</strong></p>
+              <p>Emitido em: <span id="relDataEmissao">-</span></p>
+            </div>
+          </div>
+
+          <!-- Cards Resumo do Relatório -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="p-4 bg-slate-50 border border-slate-200">
+              <p class="text-xs text-slate-500 font-bold uppercase">Docs Vigentes</p>
+              <p class="text-2xl font-black text-emerald-700 font-mono mt-1" id="relDocsValidos">0</p>
+            </div>
+            <div class="p-4 bg-slate-50 border border-slate-200">
+              <p class="text-xs text-slate-500 font-bold uppercase">Pendências / Vencendo</p>
+              <p class="text-2xl font-black text-amber-600 font-mono mt-1" id="relDocsPendentes">0</p>
+            </div>
+            <div class="p-4 bg-slate-50 border border-slate-200">
+              <p class="text-xs text-slate-500 font-bold uppercase">Coletas Efetuadas</p>
+              <p class="text-2xl font-black text-emerald-700 font-mono mt-1" id="relColetasRealizadas">0</p>
+            </div>
+            <div class="p-4 bg-slate-50 border border-slate-200">
+              <p class="text-xs text-slate-500 font-bold uppercase">Volume Total RSS</p>
+              <p class="text-2xl font-black text-slate-900 font-mono mt-1" id="relPesoTotal">0.0 kg</p>
+            </div>
+          </div>
+
+          <div class="text-xs text-slate-600 leading-relaxed border-t border-slate-200 pt-4">
+            <p><strong>Declaração de Conformidade Sanitária & Ambiental:</strong> Este documento consolida o histórico
+              de rastreabilidade de resíduos de serviços de saúde gerados e transportados em conformidade com as normas
+              ANVISA RDC 222/2018 e Portaria MMA 280/2020 (SINIR).</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- VIEW: LOG DE AÇÕES & TRILHA DE AUDITORIA                        -->
+      <!-- =============================================================== -->
+      <section id="view-auditoria" class="space-y-6 hidden">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-5">
+          <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Trilha de Auditoria (Log de Ações)</h1>
+            <p class="text-xs text-slate-600 mt-0.5">Registro cronológico imutável de todas as ações com assinatura
+              SHA-256 e autenticação Gov.br.</p>
+          </div>
+          <button onclick="App.carregarAuditoria()"
+            class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300 flex items-center space-x-1">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-emerald-600"></i>
+            <span>Atualizar Logs</span>
+          </button>
+        </div>
+
+        <div class="glass-card border border-slate-200 overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead
+                class="bg-slate-100 text-slate-700 border-b border-slate-200 uppercase font-mono tracking-wider text-[11px]">
+                <tr>
+                  <th class="p-3.5 border-r border-slate-200">Data & Hora</th>
+                  <th class="p-3.5 border-r border-slate-200">Ação Executada</th>
+                  <th class="p-3.5 border-r border-slate-200">Autor</th>
+                  <th class="p-3.5 border-r border-slate-200">Perfil</th>
+                  <th class="p-3.5">Hash SHA-256 de Imutabilidade</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaAuditoriaBody" class="divide-y divide-slate-200 text-slate-800 font-mono">
+                <!-- Preenchido via JS / API -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
-  <!-- MODAL ETAPA 1 -->
-  <div id="modalEtapa1" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="glass-card bg-slate-900 border border-slate-800 rounded-xl w-full max-w-lg p-6 space-y-4">
-      <h3 class="text-sm font-bold text-white">Registrar Geração de Resíduo</h3>
-      <form onsubmit="App.submitGeracaoResiduo(event)" class="space-y-3 text-xs">
-        <div>
-          <label class="block text-slate-400 mb-1">Grupo do Resíduo</label>
-          <select id="formGrupo" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white">
-            <option value="A">Grupo A - Biológico / Infectante</option>
-            <option value="B">Grupo B - Químico</option>
-            <option value="E">Grupo E - Perfurocortante</option>
-          </select>
+  <!-- RODAPÉ OFICIAL -->
+  <footer class="border-t border-slate-200 bg-slate-950 text-white py-5 px-6 no-print">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+      <div class="flex items-center space-x-4">
+        <div class="h-10 w-10 flex items-center justify-center p-1 bg-white border border-slate-700 shadow-sm shrink-0">
+          <img src="assets/deltamind-logo.png" alt="DELTA MIND Logo" class="h-full w-full object-contain" />
         </div>
-        <div>
-          <label class="block text-slate-400 mb-1">Descrição (opcional)</label>
-          <input type="text" id="formDescricao" placeholder="Ex: Seringas e agulhas usadas" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
+        <div class="flex items-center space-x-2">
+          <span class="font-black text-white text-sm tracking-widest uppercase">DELTA MIND</span>
+          <span class="text-slate-600">|</span>
+          <span class="text-slate-300 font-semibold">Equipe Fundadora do Sistema</span>
         </div>
-        <div>
-          <label class="block text-slate-400 mb-1">Peso (kg)</label>
-          <input type="number" step="0.1" id="formPeso" required class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
+      </div>
+      <p class="text-slate-400 text-xs text-center sm:text-right">
+        &copy; 2026 SafeWaste &bull; Desenvolvido por <strong class="text-white">DELTA MIND</strong>. Todos os direitos
+        reservados.
+      </p>
+    </div>
+  </footer>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: AUTENTICAÇÃO OFICIAL GOV.BR & CONFIABILIDADES V3           -->
+  <!-- ================================================================= -->
+  <div id="modalGovBr"
+    class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden modal-backdrop">
+    <div class="modal-content glass-card bg-white border border-[#1351b4] w-full max-w-md p-6 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 bg-[#1351b4] flex items-center justify-center text-white font-black text-xs">
+            gov
+          </div>
+          <h3 class="text-sm font-black text-slate-900 tracking-tight">Autenticação Gov.br & SINIR</h3>
         </div>
-        <div>
-          <label class="block text-slate-400 mb-1">CPF do Responsável Técnico</label>
-          <input type="text" id="formCpf" required placeholder="000.000.000-00" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" />
+        <button onclick="UI.toggleModal('modalGovBr', false)" class="text-slate-500 hover:text-slate-900">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Informações do Swagger ConectaGov V3 -->
+      <div class="p-3 bg-blue-50 border border-blue-200 text-[11px] text-blue-950 space-y-1.5">
+        <div class="flex items-center space-x-1.5 font-bold text-[#1351b4]">
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+          <span>API Confiabilidades V3 (ConectaGov / Serpro)</span>
         </div>
-        <div class="flex justify-end space-x-2 pt-3">
-          <button type="button" onclick="UI.toggleModal('modalEtapa1', false)" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded">Cancelar</button>
-          <button type="submit" class="px-3 py-1.5 bg-emerald-600 text-slate-950 font-bold rounded">Salvar Resíduo</button>
+        <p class="text-slate-700">Para emitir e assinar Manifestos MTR, o Responsável Técnico deve possuir conta Gov.br
+          Nível <strong>Prata</strong> ou <strong>Ouro</strong> com CPF vinculado à Unidade Geradora no MTR Nacional.
+        </p>
+      </div>
+
+      <!-- Container de Sessão Ativa (quando já autenticado) -->
+      <div id="govBrActiveSessionContainer"
+        class="hidden p-4 bg-emerald-50 border border-emerald-600 space-y-3 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-emerald-950 flex items-center space-x-1.5">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-700"></i>
+            <span>Sessão Gov.br Ativa</span>
+          </span>
+          <span id="activeGovBrNivel"
+            class="text-[10px] px-2 py-0.5 bg-amber-400 text-slate-950 font-black uppercase tracking-wider">OURO</span>
+        </div>
+        <div class="space-y-1 text-slate-700 text-[11px]">
+          <p><strong>Titular:</strong> <span id="activeGovBrNome">-</span></p>
+          <p><strong>CPF:</strong> <span id="activeGovBrCpf" class="font-mono">-</span></p>
+          <p><strong>Vínculo SINIR:</strong> <span class="text-emerald-700 font-bold">Unidade Regular (Clínica
+              OdontoLife)</span></p>
+          <p class="text-[10px] text-slate-500 italic mt-1">A sessão é mantida durante o uso e ao alternar perfis, sendo
+            encerrada automaticamente ao fechar o site.</p>
+        </div>
+        <div class="flex justify-between items-center pt-2 border-t border-emerald-200">
+          <button type="button" onclick="App.desconectarGovBr()"
+            class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold text-xs uppercase tracking-wider transition">
+            Desconectar Gov.br
+          </button>
+          <button type="button" onclick="UI.toggleModal('modalGovBr', false)"
+            class="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs uppercase tracking-wider transition">
+            OK, Continuar
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulário de Autenticação Gov.br -->
+      <form id="formGovBrLogin" onsubmit="App.submitGovBrLogin(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Tipo de Autenticação
+            Gov.br</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="App.selecionarTipoGovBr('certificado')" id="btnGovBrTipoCertificado"
+              class="p-2.5 border-2 border-[#1351b4] bg-blue-50 text-[#1351b4] font-bold text-center flex flex-col items-center space-y-1">
+              <i data-lucide="key-round" class="w-4 h-4"></i>
+              <span>Certificado Digital (Ouro)</span>
+            </button>
+            <button type="button" onclick="App.selecionarTipoGovBr('banco')" id="btnGovBrTipoBanco"
+              class="p-2.5 border border-slate-300 bg-white text-slate-700 font-medium text-center flex flex-col items-center space-y-1">
+              <i data-lucide="landmark" class="w-4 h-4"></i>
+              <span>Validação Bancária (Prata)</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">CPF do Responsável Técnico</label>
+          <input type="text" id="govBrCpfInput" data-mask="cpf" required placeholder="000.000.000-00"
+            value=""
+            class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 font-mono font-bold focus:border-[#1351b4]" />
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Nome Completo</label>
+          <input type="text" id="govBrNomeInput" required placeholder="Nome Completo do Titular"
+            value=""
+            class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 focus:border-[#1351b4]" />
+        </div>
+
+        <!-- Status de Confiabilidade Consultado -->
+        <div id="govBrStatusConfiabilidadeBox" class="p-3 bg-slate-50 border border-slate-200 text-[11px] space-y-1">
+          <p class="font-bold text-slate-800 flex items-center justify-between">
+            <span>Status no MTR Nacional:</span>
+            <span class="text-emerald-700 font-mono font-bold">VÍNCULO ATIVO (SINIR)</span>
+          </p>
+          <p class="text-slate-600">Unidade: Clínica OdontoLife | CNPJ: 14.892.410/0001-83</p>
+          <p class="text-[10px] text-slate-500 font-mono">Selo: 301 - Certificado ICP-Brasil (e-CPF) &bull; Nível 3
+            (Ouro)</p>
+        </div>
+
+        <div class="flex justify-end space-x-2.5 pt-3 border-t border-slate-200">
+          <button type="button" onclick="UI.toggleModal('modalGovBr', false)"
+            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold uppercase tracking-wider border border-slate-300">Cancelar</button>
+          <button type="submit"
+            class="px-4 py-2 bg-[#1351b4] hover:bg-[#0c326f] text-white font-black uppercase tracking-wider flex items-center space-x-1.5 shadow-sm">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Validar & Conectar Gov.br</span>
+          </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL PDF -->
-  <div id="modalPDF" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white text-slate-900 rounded-xl w-full max-w-xl p-6 space-y-4">
-      <h2 class="text-lg font-bold">Relatório Oficial de Conformidade RSS</h2>
-      <p class="text-xs text-slate-600">Manifesto MTR: <span id="pdfMTR" class="font-mono font-bold"></span></p>
-      <div class="flex justify-end space-x-2 border-t pt-3">
-        <button onclick="UI.toggleModal('modalPDF', false)" class="px-3 py-1 bg-slate-200 text-xs rounded">Fechar</button>
-        <button onclick="window.print()" class="px-3 py-1 bg-emerald-600 text-white text-xs rounded font-bold">Imprimir PDF</button>
+  <!-- ================================================================= -->
+  <!-- MODAL: REGISTRAR GERAÇÃO DE RESÍDUO (CLÍNICA)                     -->
+  <!-- ================================================================= -->
+  <div id="modalEtapa1"
+    class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden modal-backdrop">
+    <div class="modal-content glass-card bg-white border border-emerald-600 w-full max-w-lg p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-600"></i>
+          <span>Registrar Geração de Resíduo (MTR Nacional)</span>
+        </h3>
+        <button onclick="UI.toggleModal('modalEtapa1', false)" class="text-slate-500 hover:text-slate-900">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
       </div>
+
+      <form id="formGeracaoResiduo" onsubmit="App.submitGeracaoResiduo(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Classificação do Resíduo (Grupo
+            RSS) *</label>
+          <select id="formGrupo"
+            class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 focus:border-emerald-600">
+            <!-- Populado dinamicamente via JS a partir de metadados normativos -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Descrição Detalhada do
+            Resíduo</label>
+          <input type="text" id="formDescricao" placeholder="Ex: Caixas Descarpack de agulhas e bisturis usados"
+            class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 focus:border-emerald-600" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Peso Gerado (kg) *</label>
+            <input type="number" step="0.1" id="formPeso" required placeholder="Ex: 12.5"
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 font-mono font-bold focus:border-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">CPF do Responsável Técnico
+              *</label>
+            <input type="text" id="formCpf" data-mask="cpf" required placeholder="000.000.000-00"
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 font-mono font-bold focus:border-emerald-600" />
+          </div>
+        </div>
+
+        <!-- Indicador Gov.br vinculado -->
+        <div class="p-3 bg-blue-50 border border-blue-200 text-[11px] text-blue-900 flex items-center space-x-2">
+          <i data-lucide="shield-check" class="w-4 h-4 text-[#1351b4] shrink-0"></i>
+          <span>O manifesto será assinado com a conta <strong>Gov.br</strong> vinculada à Unidade Geradora no
+            SINIR.</span>
+        </div>
+
+        <div class="flex justify-end space-x-2.5 pt-3 border-t border-slate-200">
+          <button type="button" onclick="UI.toggleModal('modalEtapa1', false)"
+            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold uppercase tracking-wider border border-slate-300">Cancelar</button>
+          <button type="submit"
+            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black border border-emerald-600 uppercase tracking-wider">Salvar
+            & Gerar MTR</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- MODAL RASTREIO -->
-  <div id="modalRastreio" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-    <div class="glass-card bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-6 space-y-5 max-h-[85vh] overflow-y-auto custom-scrollbar">
-      <div class="flex items-start justify-between">
+  <!-- ================================================================= -->
+  <!-- MODAL: ANEXAR DOCUMENTO PDF (CLÍNICA)                             -->
+  <!-- ================================================================= -->
+  <div id="modalUploadDocumento"
+    class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden modal-backdrop">
+    <div class="modal-content glass-card bg-white border border-emerald-600 w-full max-w-lg p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+          <i data-lucide="upload-cloud" class="w-4 h-4 text-emerald-600"></i>
+          <span>Anexar Documento de Conformidade</span>
+        </h3>
+        <button onclick="UI.toggleModal('modalUploadDocumento', false)" class="text-slate-500 hover:text-slate-900">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formUploadDocumento" onsubmit="App.submitUploadDocumento(event)" class="space-y-3.5 text-xs">
         <div>
-          <h3 class="text-sm font-bold text-white">Rastreamento do Resíduo</h3>
-          <p class="text-xs text-slate-500 font-mono mt-0.5" id="rastreioMTR"></p>
+          <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Nome / Identificação do Documento
+            *</label>
+          <input type="text" id="docNomeInput" name="nome" required placeholder="Ex: PGRSS 2026 - Atualização Semestral"
+            class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 focus:border-emerald-600" />
         </div>
-        <button onclick="UI.toggleModal('modalRastreio', false)" class="text-slate-500 hover:text-white">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Tipo de Documento *</label>
+            <select id="docTipoSelect" name="tipo" required
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 focus:border-emerald-600">
+              <!-- Populado dinamicamente via JS a partir de metadados da API -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Obrigatoriedade Legal</label>
+            <select id="docObrigatorioSelect" name="obrigatorio"
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 focus:border-emerald-600">
+              <option value="true">Obrigatório</option>
+              <option value="false">Complementar / Opcional</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Data de Emissão *</label>
+            <input type="date" id="docEmissaoInput" name="dataEmissao" required
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 focus:border-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Data de Validade
+              (Vencimento)</label>
+            <input type="date" id="docValidadeInput" name="dataValidade"
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 focus:border-emerald-600" />
+          </div>
+        </div>
+
+        <!-- Campo de Upload PDF Exclusivo com Drag & Drop -->
+        <div>
+          <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Arquivo PDF do Documento (Apenas
+            .pdf) *</label>
+          <div class="dropzone p-4 text-center cursor-pointer relative bg-slate-50">
+            <input type="file" id="docArquivoPdf" name="arquivoPdf" accept="application/pdf,.pdf" required
+              class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+            <div class="space-y-1">
+              <i data-lucide="file-up" class="w-8 h-8 mx-auto text-emerald-600"></i>
+              <p id="docArquivoPdfLabel" class="text-xs text-slate-800 font-bold">Clique ou arraste o arquivo PDF aqui
+              </p>
+              <p class="text-[10px] text-slate-500">Arquivos não-PDF ou acima de 15MB serão rejeitados</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2.5 pt-3 border-t border-slate-200">
+          <button type="button" onclick="UI.toggleModal('modalUploadDocumento', false)"
+            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold uppercase tracking-wider border border-slate-300">Cancelar</button>
+          <button type="submit"
+            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black border border-emerald-600 uppercase tracking-wider">Salvar
+            & Anexar PDF</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: REGISTRAR COLETA (EMPRESA COLETORA)                         -->
+  <!-- ================================================================= -->
+  <div id="modalRealizarColeta"
+    class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden modal-backdrop">
+    <div class="modal-content glass-card bg-white border border-emerald-600 w-full max-w-lg p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div>
+          <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+            <i data-lucide="truck" class="w-4 h-4 text-emerald-600"></i>
+            <span>Confirmar Realização de Coleta</span>
+          </h3>
+          <p class="text-xs text-emerald-700 font-mono mt-0.5 font-bold" id="coletaModalMTR"></p>
+        </div>
+        <button onclick="UI.toggleModal('modalRealizarColeta', false)" class="text-slate-500 hover:text-slate-900">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formRealizarColeta" onsubmit="App.submitRealizarColeta(event)" class="space-y-3.5 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Data & Hora da Coleta *</label>
+            <input type="datetime-local" id="coletaDataHora" name="dataHoraColeta" required
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 font-mono font-bold focus:border-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Peso Aferido na Balança (kg)
+              *</label>
+            <input type="number" step="0.1" id="coletaPeso" name="pesoColetadoKg" required placeholder="Ex: 28.5"
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 font-mono font-bold focus:border-emerald-600" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Nome do Motorista Coletor
+              *</label>
+            <input type="text" id="coletaMotoristaInput" name="motoristaNome" required
+              placeholder="Ex: Carlos Eduardo Santos"
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 focus:border-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Placa do Veículo Coletor
+              *</label>
+            <input type="text" id="coletaPlacaInput" name="veiculoPlaca" required placeholder="Ex: OKL-9214"
+              class="w-full bg-white border border-slate-300 p-2.5 text-slate-900 font-mono uppercase focus:border-emerald-600" />
+          </div>
+        </div>
+
+        <!-- Comprovante de Coleta PDF -->
+        <div>
+          <label class="block text-slate-700 font-bold mb-1 uppercase tracking-wider">Anexo do Comprovante de Coleta
+            Assinado (PDF)</label>
+          <div class="dropzone p-4 text-center cursor-pointer relative bg-slate-50">
+            <input type="file" id="coletaComprovantePdf" name="comprovantePdf" accept="application/pdf,.pdf"
+              class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+            <div class="space-y-1">
+              <i data-lucide="file-check" class="w-8 h-8 mx-auto text-emerald-600"></i>
+              <p id="coletaComprovantePdfLabel" class="text-xs text-slate-800 font-bold">Clique ou arraste o comprovante
+                PDF assinado aqui</p>
+              <p class="text-[10px] text-slate-500">Ou deixe em branco para gerar o comprovante digital automaticamente
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2.5 pt-3 border-t border-slate-200">
+          <button type="button" onclick="UI.toggleModal('modalRealizarColeta', false)"
+            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold uppercase tracking-wider border border-slate-300">Cancelar</button>
+          <button type="submit"
+            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black border border-emerald-600 uppercase tracking-wider">Confirmar
+            Coleta & Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: RASTREAMENTO TIMELINE                                      -->
+  <!-- ================================================================= -->
+  <div id="modalRastreio"
+    class="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 hidden modal-backdrop">
+    <div
+      class="modal-content glass-card bg-white border border-emerald-600 w-full max-w-lg p-6 space-y-5 max-h-[88vh] overflow-y-auto custom-scrollbar shadow-2xl">
+      <div class="flex items-start justify-between border-b border-slate-200 pb-3">
+        <div>
+          <h3 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+            <i data-lucide="git-commit" class="w-4 h-4 text-emerald-600"></i>
+            <span>Rastreabilidade & Trilha de Destinação</span>
+          </h3>
+          <p class="text-xs text-emerald-700 font-mono mt-0.5 font-bold" id="rastreioMTR"></p>
+        </div>
+        <button onclick="UI.toggleModal('modalRastreio', false)" class="text-slate-500 hover:text-slate-900">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -153,17 +997,25 @@
         <!-- Preenchido via JS -->
       </div>
 
-      <div class="border-t border-slate-800 pt-4 flex justify-end">
-        <button id="btnAvancarEtapa" onclick="App.avancarEtapaAtual()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded text-xs">
+      <div class="border-t border-slate-200 pt-4 flex justify-between items-center">
+        <button onclick="UI.toggleModal('modalRastreio', false)"
+          class="px-3 py-1.5 bg-slate-100 text-slate-800 text-xs font-bold uppercase tracking-wider hover:bg-slate-200 border border-slate-300">Fechar</button>
+        <button id="btnAvancarEtapa" onclick="App.avancarEtapaAtual()"
+          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider transition border border-emerald-600 hidden">
           Avançar para Próxima Etapa
         </button>
       </div>
     </div>
   </div>
 
-  <!-- SCRIPTS -->
+  <!-- ================================================================= -->
+  <!-- SCRIPTS MODULARES: STORAGE, VALIDADORES, API, UI, APP              -->
+  <!-- ================================================================= -->
+  <script src="js/storage.js"></script>
+  <script src="js/validators.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 </html>

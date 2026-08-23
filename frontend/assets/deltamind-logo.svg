@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400" width="100%" height="100%">
+  <defs>
+    <style>
+      .delta-facet-1 { fill: #f8fafc; stroke: #334155; stroke-width: 2; }
+      .delta-facet-2 { fill: #e2e8f0; stroke: #334155; stroke-width: 2; }
+      .delta-facet-3 { fill: #cbd5e1; stroke: #334155; stroke-width: 2; }
+      .delta-facet-4 { fill: #94a3b8; stroke: #334155; stroke-width: 2; }
+      .delta-facet-dark { fill: #64748b; stroke: #334155; stroke-width: 2; }
+    </style>
+  </defs>
+  <g transform="translate(50, 20)">
+    <!-- Main Interlocking Isometric Delta Triangle Structure -->
+    <!-- Top to Right Leg Outer -->
+    <polygon points="200,20 236,78 164,78" class="delta-facet-1" />
+    <polygon points="200,20 355,278 305,278 178,72" class="delta-facet-2" />
+    <polygon points="355,278 380,318 290,318 305,278" class="delta-facet-dark" />
+    <polygon points="380,318 355,340 260,340 290,318" class="delta-facet-3" />
+
+    <!-- Bottom Leg Outer -->
+    <polygon points="355,340 45,340 68,300 290,300" class="delta-facet-1" />
+    <polygon points="45,340 20,318 68,300" class="delta-facet-dark" />
+    <polygon points="20,318 200,20 178,72 68,260" class="delta-facet-3" />
+
+    <!-- Left to Top Leg Inner & Interlocking Loop -->
+    <polygon points="68,260 120,172 150,172 85,280" class="delta-facet-2" />
+    <polygon points="120,172 200,20 220,55 150,172" class="delta-facet-1" />
+
+    <!-- Center Bridge (Horizontal crossing to Right) -->
+    <polygon points="150,172 270,172 295,212 185,212" class="delta-facet-1" />
+    <polygon points="270,172 320,256 280,256 245,198" class="delta-facet-4" />
+    <polygon points="295,212 320,256 270,340 240,290" class="delta-facet-dark" />
+
+    <!-- Inner Central Triangular Void -->
+    <polygon points="185,212 245,198 215,250" class="delta-facet-3" />
+    <polygon points="215,250 270,340 220,340 185,278" class="delta-facet-2" />
+    <polygon points="185,278 85,280 135,230 185,230" class="delta-facet-4" />
+  </g>
+</svg>

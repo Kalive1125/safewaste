@@ -1,0 +1,26 @@
+{
+  "name": "safewaste-platform",
+  "version": "1.0.0",
+  "description": "SafeWaste - Plataforma Full-Stack de Compliance e Rastreabilidade de Resíduos de Serviços de Saúde (MTR Nacional / Gov.br)",
+  "main": "backend/server.js",
+  "scripts": {
+    "postinstall": "cd backend && npm install",
+    "start": "node backend/server.js",
+    "dev": "cd backend && npm run dev",
+    "build": "cd backend && npm install && node ./scripts/sync_all_pdfs.js"
+  },
+  "keywords": [
+    "safewaste",
+    "compliance",
+    "rss",
+    "mtr",
+    "govbr",
+    "anvisa",
+    "sinir"
+  ],
+  "author": "DELTA MIND",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

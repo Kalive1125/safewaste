@@ -1,41 +1,29 @@
 const UI = {
   navigate(viewId) {
-    document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
-    const targetSection = document.getElementById(`view-${viewId}`);
-    if (targetSection) targetSection.classList.remove('hidden');
-
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-      if (btn.getAttribute('data-target') === viewId) {
-        btn.classList.add('bg-slate-800', 'text-white');
-      } else {
-        btn.classList.remove('bg-slate-800', 'text-white');
-      }
-    });
+    document.querySelectorAll('.view').forEach(view => view.classList.add('hidden'));
+    document.getElementById(`view-${viewId}`)?.classList.remove('hidden');
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.target === viewId));
+    if (window.lucide) lucide.createIcons();
   },
-
-  toggleModal(modalId, show = true) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      if (show) modal.classList.remove('hidden');
-      else modal.classList.add('hidden');
-    }
+  toggleModal(id, show = true) {
+    document.getElementById(id)?.classList.toggle('hidden', !show);
+    if (show && window.lucide) lucide.createIcons();
   },
-
   switchRole(role) {
-    const nameDisp = document.getElementById('userNameDisplay');
-    const roleDisp = document.getElementById('userRoleDisplay');
-
-    const roleMap = {
-      master: { name: 'Administrador do Sistema', role: 'ADMINISTRADOR MASTER' },
-      clinica: { name: 'Clínica OdontoLife', role: 'CLÍNICA GERADORA' },
-      coletora: { name: 'EcoResíduos Logística', role: 'EMPRESA COLETORA' },
-      destino: { name: 'Bahia Tratamento RSS', role: 'DESTINO FINAL' },
-      demo: { name: 'Demonstração Comercial', role: 'MODO DEMO (ENTERPRISE)' }
-    };
-
-    if (roleMap[role]) {
-      nameDisp.innerText = roleMap[role].name;
-      roleDisp.innerText = roleMap[role].role;
-    }
+    const roles = { clinica: ['Clínica OdontoLife', 'CLÍNICA GERADORA', 'CL', 'OdontoLife'], coletora: ['EcoResíduos Logística', 'EMPRESA COLETORA', 'EC', 'EcoResíduos'] };
+    const [name, label, initials, greeting] = roles[role];
+    document.getElementById('userNameDisplay').textContent = name;
+    document.getElementById('userRoleDisplay').textContent = label;
+    document.getElementById('avatarDisplay').textContent = initials;
+    document.getElementById('greetingName').textContent = greeting;
+    document.querySelectorAll('.clinic-only').forEach(el => el.classList.toggle('hidden', role !== 'clinica'));
+    document.querySelectorAll('.collector-only').forEach(el => el.classList.toggle('hidden', role !== 'coletora'));
+    App.role = role;
+    App.log(`Perfil alterado para ${label}.`);
+    App.render();
+  },
+  toast(message) {
+    const toast = document.getElementById('toast'); toast.textContent = message; toast.classList.remove('hidden');
+    clearTimeout(UI.toastTimer); UI.toastTimer = setTimeout(() => toast.classList.add('hidden'), 3600);
   }
 };

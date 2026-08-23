@@ -1,144 +1,48 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // Inicialização de Ícones Lucide
-  if (window.lucide) lucide.createIcons();
-
-  // Carregar dados da API
-  App.carregarTabelaResiduos();
-});
-
 const App = {
-  // Precisa bater com as etapas definidas no backend (residuosController.js)
-  ETAPAS: {
-    1: { label: 'Resíduo Gerado', icone: 'flask-conical' },
-    2: { label: 'Coletado', icone: 'package-check' },
-    3: { label: 'Em Transporte', icone: 'truck' },
-    4: { label: 'Recebido no Destino', icone: 'warehouse' },
-    5: { label: 'Descarte Concluído', icone: 'shield-check' }
-  },
-  rastreioAtual: null,
-
-  async carregarTabelaResiduos() {
-    const result = await SafeWasteAPI.fetchResiduos();
-    const tbody = document.getElementById('tabelaResiduosBody');
-    if (!tbody) return;
-
-    if (result.sucesso && result.data.length > 0) {
-      tbody.innerHTML = result.data.map(item => {
-        const etapa = App.ETAPAS[item.etapaAtual] || { label: `Etapa ${item.etapaAtual}` };
-        const concluido = item.etapaAtual >= 5;
-        const badgeClasses = concluido
-          ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
-          : 'bg-amber-950 text-amber-400 border-amber-800';
-
-        return `
-        <tr class="hover:bg-slate-900/40">
-          <td class="p-3 font-mono text-emerald-400 font-medium">${item.mtrCodigo}</td>
-          <td class="p-3">Unidade Geradora Cadastrada</td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">Grupo ${item.grupoResiduo}</span></td>
-          <td class="p-3">${item.pesoGeradoKg} kg</td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded border ${badgeClasses}">${etapa.label}</span></td>
-          <td class="p-3 text-right space-x-1 whitespace-nowrap">
-            <button onclick="App.abrirRastreio('${item.mtrCodigo}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded text-[11px]">Rastrear</button>
-            <button onclick="App.abrirPDF('${item.mtrCodigo}')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[11px]">PDF</button>
-          </td>
-        </tr>
-      `;
-      }).join('');
-    } else {
-      tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum resíduo registrado ainda.</td></tr>`;
-    }
-  },
-
-  async submitGeracaoResiduo(e) {
-    e.preventDefault();
-    const grupoResiduo = document.getElementById('formGrupo').value;
-    const descricao = document.getElementById('formDescricao').value;
-    const pesoGeradoKg = document.getElementById('formPeso').value;
-    const rtCpf = document.getElementById('formCpf').value;
-
-    const res = await SafeWasteAPI.registrarResiduo({ grupoResiduo, descricao, pesoGeradoKg, rtCpf });
-    if (res.sucesso) {
-      alert('Resíduo e MTR registrados no banco de dados!');
-      e.target.reset();
-      UI.toggleModal('modalEtapa1', false);
-      App.carregarTabelaResiduos();
-    } else {
-      alert(res.erro || 'Não foi possível registrar o resíduo.');
-    }
-  },
-
-  abrirPDF(mtr) {
-    document.getElementById('pdfMTR').innerText = mtr;
-    UI.toggleModal('modalPDF', true);
-  },
-
-  // ----- RASTREAMENTO (estilo "acompanhar pedido") -----
-
-  async abrirRastreio(mtrCodigo) {
-    const result = await SafeWasteAPI.buscarRastreio(mtrCodigo);
-    if (!result.sucesso) {
-      alert(result.erro || 'Não foi possível carregar o rastreamento.');
-      return;
-    }
-
-    App.rastreioAtual = mtrCodigo;
-    document.getElementById('rastreioMTR').innerText = mtrCodigo;
-    App.renderTimeline(result.data.residuo.etapaAtual, result.data.historico);
-
-    const btnAvancar = document.getElementById('btnAvancarEtapa');
-    btnAvancar.classList.toggle('hidden', result.data.residuo.etapaAtual >= result.data.etapaFinal);
-
-    UI.toggleModal('modalRastreio', true);
-  },
-
-  renderTimeline(etapaAtual, historico) {
-    const container = document.getElementById('rastreioTimeline');
-    const chaves = Object.keys(App.ETAPAS).map(Number).sort((a, b) => a - b);
-
-    container.innerHTML = chaves.map(num => {
-      const info = App.ETAPAS[num];
-      const registro = historico.find(h => h.etapa === num);
-      const alcancada = num <= etapaAtual;
-      const atual = num === etapaAtual;
-      const ultimaLinha = num === chaves[chaves.length - 1];
-
-      const circulo = alcancada
-        ? 'bg-emerald-500 border-emerald-500 text-slate-950'
-        : 'bg-slate-800 border-slate-700 text-slate-600';
-
-      const linha = num < etapaAtual ? 'bg-emerald-500' : 'bg-slate-700';
-      const dataFormatada = registro
-        ? new Date(registro.createdAt || registro.created_at).toLocaleString('pt-BR')
-        : null;
-
-      return `
-        <div class="flex space-x-4">
-          <div class="flex flex-col items-center">
-            <div class="w-8 h-8 shrink-0 rounded-full border-2 flex items-center justify-center ${circulo} ${atual ? 'ring-4 ring-emerald-500/20' : ''}">
-              <i data-lucide="${alcancada ? 'check' : info.icone}" class="w-4 h-4"></i>
-            </div>
-            ${!ultimaLinha ? `<div class="w-0.5 flex-1 min-h-[28px] ${linha}"></div>` : ''}
-          </div>
-          <div class="pb-6">
-            <p class="text-sm font-semibold ${alcancada ? 'text-white' : 'text-slate-500'}">${info.label}</p>
-            ${dataFormatada ? `<p class="text-[11px] text-emerald-400 font-mono mt-0.5">${dataFormatada}</p>` : `<p class="text-[11px] text-slate-600 mt-0.5">Aguardando</p>`}
-          </div>
-        </div>
-      `;
-    }).join('');
-
+  role: 'clinica',
+  storeKey: 'safewaste-compliance-v2',
+  data: null,
+  months: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+  init() {
+    this.data = JSON.parse(localStorage.getItem(this.storeKey)) || this.seed(); this.populateFilters(); this.render();
+    document.getElementById('collectionDate').value = new Date().toISOString().slice(0,16);
     if (window.lucide) lucide.createIcons();
   },
-
-  async avancarEtapaAtual() {
-    if (!App.rastreioAtual) return;
-
-    const res = await SafeWasteAPI.avancarEtapa(App.rastreioAtual);
-    if (res.sucesso) {
-      App.abrirRastreio(App.rastreioAtual);
-      App.carregarTabelaResiduos();
-    } else {
-      alert(res.erro || 'Erro ao avançar etapa.');
-    }
-  }
+  seed() { return { documents: [
+    { id: 1, type: 'Licença ambiental', file: 'licenca-operacao.pdf', expiry: '2026-09-02', mtr: 'Operação', created: '2026-08-02T10:30:00' },
+    { id: 2, type: 'MTR', file: 'mtr-2026-0841.pdf', expiry: '2026-08-30', mtr: 'MTR-2026-0841', created: '2026-08-18T09:10:00' },
+    { id: 3, type: 'CDF', file: 'cdf-2026-0803.pdf', expiry: '2027-01-15', mtr: 'MTR-2026-0803', created: '2026-08-04T15:42:00' }
+  ], collections: [
+    { mtr: 'MTR-2026-0841', date: '2026-08-18T09:00:00', weight: 38.5, status: 'Aguardando documentos', proof: false },
+    { mtr: 'MTR-2026-0803', date: '2026-08-04T14:30:00', weight: 42, status: 'Concluída', proof: true },
+    { mtr: 'MTR-2026-0718', date: '2026-07-21T10:15:00', weight: 31.2, status: 'Concluída', proof: true }
+  ], waste: [
+    { date: '2026-08-18', weight:38.5 }, { date:'2026-08-04',weight:42 }, { date:'2026-07-21',weight:31.2 }, { date:'2026-07-02',weight:28.6 }, { date:'2026-06-19',weight:33.8 }, { date:'2026-06-03',weight:35.4 }, { date:'2026-05-20',weight:29.1 }
+  ], activity: [
+    { action:'CDF vinculado à coleta MTR-2026-0803.', date:'2026-08-04T15:42:00', icon:'file-check' }, { action:'Coleta MTR-2026-0841 registrada.', date:'2026-08-18T09:00:00', icon:'truck' }, { action:'MTR-2026-0841 aguardando comprovante obrigatório.', date:'2026-08-18T09:05:00', icon:'alert-circle' }
+  ] }; },
+  save() { localStorage.setItem(this.storeKey, JSON.stringify(this.data)); },
+  filteredWaste() { const m = +document.getElementById('monthFilter').value, y = +document.getElementById('yearFilter').value; return this.data.waste.filter(w => { const d = new Date(`${w.date}T12:00:00`); return (!m || d.getMonth()+1===m) && (!y || d.getFullYear()===y); }); },
+  populateFilters() { const ms = document.getElementById('monthFilter'), ys = document.getElementById('yearFilter'); ms.innerHTML='<option value="">Todos</option>'+this.months.map((m,i)=>`<option value="${i+1}">${m}</option>`).join(''); ys.innerHTML='<option value="">Todos</option><option value="2026" selected>2026</option>'; },
+  applyFilters() { this.render(); }, resetFilters() { document.getElementById('monthFilter').value=''; document.getElementById('yearFilter').value='2026'; this.render(); },
+  getDocumentStatus(doc) { const days = Math.ceil((new Date(`${doc.expiry}T23:59:59`) - new Date('2026-08-23T12:00:00')) / 86400000); return days < 0 ? ['Vencido','danger'] : days <= 30 ? [`Vence em ${days} dias`,'pending'] : ['Regular','ok']; },
+  documentationComplete(mtr) { const types = this.data.documents.filter(d=>d.mtr===mtr).map(d=>d.type); return types.includes('MTR') && (types.includes('CDF') || types.includes('Comprovante de coleta')); },
+  date(value) { return new Date(value).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}); },
+  render() { const waste = this.filteredWaste(), docs=this.data.documents, pending=docs.filter(d=>this.getDocumentStatus(d)[1]!=='ok').length; document.getElementById('navPending').textContent=pending; this.renderKpis(waste,pending); this.renderChart(); this.renderExpiry(); this.renderCollections(); this.renderDocuments(); this.renderActivity(); this.renderReport(); if(window.lucide)lucide.createIcons(); },
+  renderKpis(waste,pending) { const total=waste.reduce((s,w)=>s+w.weight,0), done=this.data.collections.filter(c=>c.status==='Concluída').length, regular=this.data.collections.filter(c=>this.documentationComplete(c.mtr)).length; document.getElementById('kpiGrid').innerHTML=[['scale',`${total.toFixed(1)} kg`,'Resíduos descartados','no período selecionado'],['truck',done,'Coletas realizadas','registros concluídos'],['file-warning',pending,'Pendências documentais',pending?'requerem atenção':'nenhuma pendência'],['circle-check',`${regular}/${this.data.collections.length}`,'Coletas regulares','documentação obrigatória']].map(([i,v,l,d])=>`<div class="kpi"><i data-lucide="${i}"></i><div class="value">${v}</div><div class="label">${l}</div><div class="detail">${d}</div></div>`).join(''); },
+  renderChart() { const ws=this.filteredWaste(), values=this.months.map((_,i)=>ws.filter(w=>new Date(`${w.date}T12:00:00`).getMonth()===i).reduce((s,w)=>s+w.weight,0)), max=Math.max(...values,1); document.getElementById('wasteChart').innerHTML=values.map((v,i)=>`<div class="bar-wrap"><div class="bar" style="height:${Math.max(3,v/max*100)}%"><b>${v?v.toFixed(0)+'kg':''}</b></div><span>${this.months[i]}</span></div>`).join(''); const m=document.getElementById('monthFilter').value; document.getElementById('chartPeriod').textContent=m?this.months[m-1]+' / 2026':'Ano de 2026'; },
+  renderExpiry() { const near=this.data.documents.filter(d=>this.getDocumentStatus(d)[1]!=='ok').sort((a,b)=>a.expiry.localeCompare(b.expiry)); document.getElementById('expiryList').innerHTML=near.length?near.map(d=>{const [label]=this.getDocumentStatus(d);return `<div class="expiry"><i data-lucide="file-warning"></i><div><p>${d.type}</p><small>${label} · ${new Date(d.expiry+'T12:00').toLocaleDateString('pt-BR')}</small></div></div>`}).join(''):'<p class="muted py-4">Nenhum vencimento próximo.</p>'; },
+  collectionRow(c, short=false) { const regular=this.documentationComplete(c.mtr), status=c.status==='Concluída'?'ok':'pending'; return `<tr><td class="font-mono text-emerald-400">${c.mtr}</td><td>${this.date(c.date)}</td>${short?`<td>${c.weight.toFixed(1)} kg</td>`:`<td>${c.weight.toFixed(1)} kg</td>`}<td><span class="status status-${status}">${c.status}</span></td><td><span class="status status-${regular?'ok':'danger'}">${regular?'Completa':'Pendente'}</span></td>${short?'':`<td>${c.proof?'<span class="text-emerald-400">PDF anexado</span>':'<span class="text-amber-400">Não anexado</span>'}</td>`}</tr>`; },
+  renderCollections() { const rows=this.data.collections.sort((a,b)=>b.date.localeCompare(a.date)); document.getElementById('recentCollections').innerHTML=rows.slice(0,4).map(c=>this.collectionRow(c,true)).join(''); document.getElementById('collectionsTable').innerHTML=rows.map(c=>this.collectionRow(c)).join(''); },
+  renderDocuments() { document.getElementById('documentsTable').innerHTML=this.data.documents.sort((a,b)=>b.created.localeCompare(a.created)).map(d=>{const [s,k]=this.getDocumentStatus(d);return `<tr><td><b>${d.type}</b><br><span class="text-slate-500 text-[10px]">${d.file}</span></td><td>${d.mtr}</td><td>${new Date(d.expiry+'T12:00').toLocaleDateString('pt-BR')}</td><td><span class="status status-${k}">${s}</span></td><td>${this.date(d.created)}</td><td class="text-right"><button class="link-button" onclick="App.downloadDocument(${d.id})"><i data-lucide="download"></i>Baixar</button></td></tr>`}).join(''); },
+  renderActivity() { document.getElementById('activityList').innerHTML=this.data.activity.sort((a,b)=>b.date.localeCompare(a.date)).map(a=>`<div class="activity"><div class="activity-icon"><i data-lucide="${a.icon}"></i></div><div><b>${a.action}</b><p>${this.date(a.date)}</p></div></div>`).join(''); },
+  renderReport() { const waste=this.filteredWaste(), collected=this.data.collections.filter(c=>c.status==='Concluída').length, pending=this.data.documents.filter(d=>this.getDocumentStatus(d)[1]!=='ok').length, docs=this.data.documents.length; document.getElementById('reportCards').innerHTML=[['file-text',docs,'Documentos cadastrados','histórico disponível'],['file-warning',pending,'Documentos pendentes','com atenção necessária'],['truck',collected,'Coletas realizadas','no histórico']].map(([i,v,l,d])=>`<div class="kpi"><i data-lucide="${i}"></i><div class="value">${v}</div><div class="label">${l}</div><div class="detail">${d}</div></div>`).join(''); document.getElementById('reportSummary').innerHTML=`<div><b>${waste.reduce((s,w)=>s+w.weight,0).toFixed(1)} kg</b><span>Volume descartado</span></div><div><b>${this.data.collections.filter(c=>this.documentationComplete(c.mtr)).length}/${this.data.collections.length}</b><span>Coletas documentadas</span></div><div><b>${pending}</b><span>Vencimentos ou pendências</span></div>`; },
+  validPdf(file) { return file && (file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf')); },
+  submitDocument(e) { e.preventDefault(); const f=document.getElementById('docFile').files[0]; if(!this.validPdf(f)) return UI.toast('Arquivo incompatível. Anexe um documento no formato PDF.'); const id=Date.now(); this.data.documents.push({id,type:docType.value,file:f.name,expiry:docExpiry.value,mtr:'Operação',created:new Date().toISOString()}); this.log(`Documento ${docType.value} (${f.name}) cadastrado.`); this.save(); UI.toggleModal('modalDocumento',false); e.target.reset(); this.render(); UI.toast('Documento salvo e incluído no histórico.'); },
+  submitCollection(e) { e.preventDefault(); const f=collectionFile.files[0]; if(!this.validPdf(f)) return UI.toast('Arquivo incompatível. O comprovante deve ser um PDF.'); const mtr=collectionMtr.value.trim().toUpperCase(); this.data.collections.unshift({mtr,date:collectionDate.value,weight:+collectionWeight.value,status:'Concluída',proof:true}); this.data.documents.push({id:Date.now(),type:'Comprovante de coleta',file:f.name,expiry:'2027-08-23',mtr,created:new Date().toISOString()}); this.data.waste.push({date:collectionDate.value.slice(0,10),weight:+collectionWeight.value}); this.log(`Coleta ${mtr} registrada com comprovante ${f.name}.`,'truck'); this.save(); UI.toggleModal('modalColeta',false); e.target.reset(); this.render(); UI.toast('Coleta realizada e comprovante armazenado.'); },
+  submitWaste(e) { e.preventDefault(); const weight=+wasteWeight.value; this.data.waste.push({date:new Date().toISOString().slice(0,10),weight}); this.log(`Descarte de ${weight.toFixed(1)} kg (${wasteGroup.value}) registrado por ${wasteResponsible.value}.`,'scale'); this.save(); UI.toggleModal('modalResiduo',false); e.target.reset(); this.render(); UI.toast('Descarte registrado com sucesso.'); },
+  log(action,icon='file-check') { this.data.activity.push({action,icon,date:new Date().toISOString()}); },
+  downloadDocument(id) { const d=this.data.documents.find(x=>x.id===id), text=`SafeWaste - ${d.type} | Arquivo registrado: ${d.file} | Vinculado a: ${d.mtr}`.replace(/[()\\]/g,''); const pdf=`%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj\n4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n5 0 obj<</Length ${text.length + 34}>>stream\nBT /F1 12 Tf 48 740 Td (${text}) Tj ET\nendstream\nendobj\ntrailer<</Root 1 0 R>>\n%%EOF`; const blob=new Blob([pdf],{type:'application/pdf'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=d.file;a.click();URL.revokeObjectURL(a.href); this.log(`Download do documento ${d.file}.`,'download');this.save(); },
+  exportReport() { const rows=[['Relatório SafeWaste','Valor'],['Documentos cadastrados',this.data.documents.length],['Pendências',this.data.documents.filter(d=>this.getDocumentStatus(d)[1]!=='ok').length],['Coletas realizadas',this.data.collections.filter(c=>c.status==='Concluída').length],['Resíduos descartados (kg)',this.filteredWaste().reduce((s,w)=>s+w.weight,0).toFixed(1)]]; const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(';')).join('\n')],{type:'text/csv'}));a.download='relatorio-safewaste-2026.csv';a.click();URL.revokeObjectURL(a.href);this.log('Relatório mensal exportado em CSV.','download');this.save();UI.toast('Relatório exportado em CSV.'); }
 };
+document.addEventListener('DOMContentLoaded',()=>App.init());
